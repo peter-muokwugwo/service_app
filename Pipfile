@@ -9,6 +9,7 @@ djangorestframework = "*"
 pillow = "*"
 pylint-django = "*"
 drf-nested-routers = "*"
+psycopg2 = "*"
 
 [dev-packages]
 

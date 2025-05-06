@@ -77,11 +77,12 @@ WSGI_APPLICATION = 'fixitek.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'services_db',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'service_db',
+        'USER': 'peter',
+        'PASSWORD': '123',
         'HOST': 'localhost',
-        'USER': 'root',
-        'PASSWORD': 'peter'
+        'PORT': '5432',
     }
 }
 
