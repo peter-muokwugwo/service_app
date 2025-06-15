@@ -18,7 +18,7 @@ class ServiceCategory(models.Model):
         blank=True, null=True, verbose_name=_("Category Description")
     )
     feature_image = models.ImageField(
-        upload_to="service_categories/",
+        upload_to="service_categories/%Y/%m/%d/",
         blank=True,
         null=True,
         verbose_name=_("Category Image"),
@@ -35,7 +35,14 @@ class ServiceCategory(models.Model):
 
 
 class BaseServiceOption(models.Model):
-
+    
+    """
+    Abstract base class for service options.   
+    """
+    YES_NO_CHOICES = [
+        ('YES', _('Yes')),
+        ('NO', _('No')),
+    ]
     category = models.ForeignKey(
         ServiceCategory, on_delete=models.CASCADE, related_name="%(class)s_options", verbose_name=_("Service")
     )
@@ -59,6 +66,9 @@ class BaseServiceOption(models.Model):
         default=1, help_text=_("Number of services requested."), verbose_name=_("Quantity"),
         validators=[MinValueValidator(1)],
     )
+    needs_moving_help = models.CharField(
+        choices=YES_NO_CHOICES, default="NO", help_text=_("Whether moving help is required."), verbose_name=_("Moving Help")
+    )
     moving_help_charge = models.DecimalField(
         max_digits=10,
         decimal_places=2,
@@ -68,14 +78,6 @@ class BaseServiceOption(models.Model):
         verbose_name=_("Moving Help Charge"),
         validators=[MinValueValidator(0)],
     )
-    needs_moving_help = models.BooleanField(
-        default=False, help_text=_("Whether moving help is required."), verbose_name=_("Moving Help")
-    )
-
-    def get_total_price(self):
-        base_price = self.price or 0
-        moving_charge = self.moving_help_charge or 0 if self.needs_moving_help else 0
-        return (base_price + moving_charge) * self.quantity
 
     class Meta:
         abstract = True
@@ -129,16 +131,6 @@ class TVMountingOption(BaseServiceOption):
     def __str__(self):
         return f"{self.title}"
 
-    def get_total_price(self):
-        """
-        Calculates the total price for this TV mounting option.
-        """
-        base_price = self.price or 0
-        bracket_price = self.bracket_price or 0 if self.bracket != 'OWN' else 0
-        moving_charge = self.moving_help_charge or 0 if self.needs_moving_help else 0
-        unit_price = base_price + bracket_price + moving_charge
-        return unit_price * self.quantity
-
     class Meta:
         verbose_name = _("TV Mounting Option")
         verbose_name_plural = _("TV Mounting Options")
@@ -178,7 +170,6 @@ class FurnitureAssemblyOption(BaseServiceOption):
     )
 
     def __str__(self):
-        moving = " with Moving Help" if self.needs_moving_help else ""
         return f"{self.title}"
 
     class Meta:
@@ -303,12 +294,6 @@ class Cart(models.Model):
     def __str__(self):
         return f"Cart for {self.user.username}"
 
-    def get_total_price(self):
-        """
-        Calculates the total price of all items in the cart.
-        """
-        return sum(item.get_total_price() for item in self.items.all())
-
     class Meta:
         verbose_name = _("Cart")
         verbose_name_plural = _("Carts")
@@ -322,25 +307,110 @@ class CartItem(models.Model):
         Cart, on_delete=models.CASCADE, related_name="items", verbose_name=_("Cart")
     )
     content_type = models.ForeignKey(
-        ContentType, on_delete=models.CASCADE, verbose_name=_("Content Type")
+        ContentType, on_delete=models.CASCADE, verbose_name=_("Content Type"),
+        help_text=_('The type of the related service option.')
     )
-    object_id = models.PositiveIntegerField(verbose_name=_("Object ID"))
+    object_id = models.PositiveIntegerField(
+        verbose_name=_("Object ID"), help_text=_('The ID of the related service option object.')
+    )
     service_option = GenericForeignKey('content_type', 'object_id')
     quantity = models.PositiveIntegerField(
-        default=1, verbose_name=_("Quantity"), help_text=_("Number of this service option in the cart.")
+        default=1, verbose_name=_("Quantity"), help_text=_("Number of this service option in the cart."),
+        validators=[MinValueValidator(1)]
     )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Created At'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('Updated At'))
 
     def __str__(self):
-        return f"{self.quantity} x {self.service_option.title} in {self.cart.user.username}'s cart"
-
-    def get_total_price(self):
-        """
-        Calculates the total price for this cart item.
-        """
-        return self.service_option.get_total_price() * self.quantity
+        service_title = getattr(self.service_option, 'title', str(self.service_option))
+        username = getattr(getattr(self.cart, 'user', None), 'username', 'unknown')
+        return f"{self.quantity} x {service_title} in {username}'s cart"
 
     class Meta:
-        unique_together = [['cart', 'content_type', 'object_id']]
+        unique_together = [('cart', 'content_type', 'object_id')]
         ordering = ['cart']
         verbose_name = _("Cart Item")
         verbose_name_plural = _("Cart Items")
+        indexes = [
+            models.Index(fields=['cart']),
+        ]
+
+
+class Order(models.Model):
+    """
+    Represents a finalized order created from a cart.
+    """
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False, verbose_name=_('Order ID'))
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders', verbose_name=_('User'), null=True, blank=True)
+    # Guest contact fields
+    guest_name = models.CharField(max_length=255, blank=True, null=True, verbose_name=_('Guest Name'))
+    guest_email = models.EmailField(blank=True, null=True, verbose_name=_('Guest Email'))
+    guest_phone = models.CharField(max_length=32, blank=True, null=True, verbose_name=_('Guest Phone'))
+    cart = models.OneToOneField('Cart', on_delete=models.SET_NULL, null=True, blank=True, related_name='order', verbose_name=_('Cart'))
+    total_price = models.DecimalField(max_digits=12, decimal_places=2, verbose_name=_('Total Price'))
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('PENDING', _('Pending')),
+            ('PAID', _('Paid')),
+            ('CANCELLED', _('Cancelled')),
+            ('COMPLETED', _('Completed')),
+        ],
+        default='PENDING',
+        verbose_name=_('Status')
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Created At'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('Updated At'))
+
+    def __str__(self):
+        if self.user:
+            return f"Order {self.id} for {self.user.username} - {self.status}"
+        return f"Order {self.id} (Guest: {self.guest_name or 'N/A'}) - {self.status}"
+
+    class Meta:
+        verbose_name = _('Order')
+        verbose_name_plural = _('Orders')
+        ordering = ['-created_at']
+
+    def clean(self):
+        # Ensure guest contact info is present if user is not set
+        if not self.user and not (self.guest_email or self.guest_phone):
+            from django.core.exceptions import ValidationError
+            raise ValidationError(_('Guest orders must include at least an email or phone.'))
+
+
+class OrderItem(models.Model):
+    """
+    Represents an item within an order, referencing the same service options as CartItem.
+    """
+    order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='items', verbose_name=_('Order'))
+    content_type = models.ForeignKey(
+        ContentType, on_delete=models.CASCADE, verbose_name=_('Content Type'),
+        help_text=_('The type of the related service option.')
+    )
+    object_id = models.PositiveIntegerField(
+        verbose_name=_('Object ID'), help_text=_('The ID of the related service option object.')
+    )
+    service_option = GenericForeignKey('content_type', 'object_id')
+    quantity = models.PositiveIntegerField(
+        default=1, verbose_name=_('Quantity'), help_text=_('Number of this service option in the order.'),
+        validators=[MinValueValidator(1)]
+    )
+    price = models.DecimalField(
+        max_digits=10, decimal_places=2, verbose_name=_('Price'),
+        help_text=_('Price of the service option at the time of order.')
+    )
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name=_('Created At'))
+    updated_at = models.DateTimeField(auto_now=True, verbose_name=_('Updated At'))
+
+    def __str__(self):
+        service_title = getattr(self.service_option, 'title', str(self.service_option))
+        return f"{self.quantity} x {service_title} in Order {self.order_id}"
+
+    class Meta:
+        verbose_name = _('Order Item')
+        verbose_name_plural = _('Order Items')
+        ordering = ['order']
+        indexes = [
+            models.Index(fields=['order']),
+        ]

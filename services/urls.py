@@ -8,6 +8,8 @@ from .views import (
     GazeboServiceOptionViewSet,
     CartViewSet,
     CartItemViewSet,
+    OrderViewSet,
+    OrderItemViewSet,
 )
 
 # Create a router and register the viewsets
@@ -19,6 +21,8 @@ router.register(r'installation-service-options', InstallationServiceOptionViewSe
 router.register(r'gazebo-service-options', GazeboServiceOptionViewSet, basename='gazebo-service-option')
 router.register(r'cart', CartViewSet, basename='cart')
 router.register(r'cart-items', CartItemViewSet, basename='cart-item')
+router.register(r'orders', OrderViewSet, basename='order')
+router.register(r'order-items', OrderItemViewSet, basename='orderitem')
 
 # Nested routers for cart items
 cart_router = routers.NestedDefaultRouter(router, r'cart', lookup='cart')
