@@ -2,9 +2,9 @@ import base64
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from django.contrib.contenttypes.models import ContentType
-from .models import (Cart, CartItem, FurnitureAssemblyOption,
-                     GazeboServiceOption,
-                     InstallationServiceOption, 
+from .models import (Cart, CartItem, FurnitureAssemblyOption, Location, ServiceType, AssemblyType,
+                     GazeboServiceOption, GazeboModel,
+                     InstallationServiceOption, InstallationType,
                      ServiceCategory,
                      TVMountingOption,
                      Order,
@@ -37,20 +37,75 @@ class BaseServiceOptionSerializer(serializers.ModelSerializer):
         read_only_fields = ['id']
 
 class TVMountingOptionSerializer(BaseServiceOptionSerializer):
+    category = serializers.PrimaryKeyRelatedField(queryset=ServiceCategory.objects.all())
+
     class Meta(BaseServiceOptionSerializer.Meta):
         model = TVMountingOption
 
+class LocationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Location
+        fields = ['id', 'name']
+        read_only_fields = ['id']
+
+class ServiceTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ServiceType
+        fields = ['id', 'name']
+        read_only_fields = ['id']
+
+class AssemblyTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AssemblyType
+        fields = ['id', 'name']
+        read_only_fields = ['id']
+
 class FurnitureAssemblyOptionSerializer(BaseServiceOptionSerializer):
+    category = serializers.PrimaryKeyRelatedField(queryset=ServiceCategory.objects.all())
+    location = LocationSerializer(read_only=True)
+    location_id = serializers.PrimaryKeyRelatedField(queryset=Location.objects.all(), source='location', write_only=True, required=False, allow_null=True)
+    service_type = ServiceTypeSerializer(read_only=True)
+    service_type_id = serializers.PrimaryKeyRelatedField(queryset=ServiceType.objects.all(), source='service_type', write_only=True, required=False, allow_null=True)
+    assembly_type = AssemblyTypeSerializer(read_only=True)
+    assembly_type_id = serializers.PrimaryKeyRelatedField(queryset=AssemblyType.objects.all(), source='assembly_type', write_only=True, required=False, allow_null=True)
+
     class Meta(BaseServiceOptionSerializer.Meta):
         model = FurnitureAssemblyOption
+        fields = ['id', 'category', 'title', 'description', 'related_image', 'price', 'quantity', 'location', 'location_id', 'service_type', 'service_type_id', 'assembly_type', 'assembly_type_id', 'created_at']
+        read_only_fields = BaseServiceOptionSerializer.Meta.read_only_fields
+
+class InstallationTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InstallationType
+        fields = ['id', 'name', 'photo', 'description']
+        read_only_fields = ['id']
 
 class InstallationServiceOptionSerializer(BaseServiceOptionSerializer):
+    category = serializers.PrimaryKeyRelatedField(queryset=ServiceCategory.objects.all())
+    installation_type = InstallationTypeSerializer(read_only=True)
+    installation_type_id = serializers.PrimaryKeyRelatedField(queryset=InstallationType.objects.all(), source='installation_type', write_only=True, required=False, allow_null=True)
+
     class Meta(BaseServiceOptionSerializer.Meta):
         model = InstallationServiceOption
+        fields = ['id', 'category', 'title', 'description', 'related_image', 'price', 'quantity', 'installation_type', 'installation_type_id', 'location', 'power_nearby', 'created_at']
+        read_only_fields = BaseServiceOptionSerializer.Meta.read_only_fields
+
+class GazeboModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GazeboModel
+        fields = ['id', 'name', 'photo', 'description']
+        read_only_fields = ['id']
 
 class GazeboServiceOptionSerializer(BaseServiceOptionSerializer):
+    category = serializers.PrimaryKeyRelatedField(queryset=ServiceCategory.objects.all())
+    gazebo_model = GazeboModelSerializer(read_only=True)
+    gazebo_model_id = serializers.PrimaryKeyRelatedField(queryset=GazeboModel.objects.all(), source='gazebo_model', write_only=True, required=False, allow_null=True)
+
     class Meta(BaseServiceOptionSerializer.Meta):
         model = GazeboServiceOption
+        fields = ['id', 'category', 'title', 'description', 'related_image', 'price', 'quantity', 'action', 'gazebo_model', 'gazebo_model_id', 'size', 'anchoring', 'created_at'
+        ]
+        read_only_fields = BaseServiceOptionSerializer.Meta.read_only_fields
 
 
 class ServiceCategorySerializer(serializers.ModelSerializer):

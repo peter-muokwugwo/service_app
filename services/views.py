@@ -29,33 +29,33 @@ class ServiceCategoryViewSet(viewsets.ModelViewSet):
     serializer_class = ServiceCategorySerializer
 
 
-class TVMountingOptionViewSet(viewsets.ReadOnlyModelViewSet):
+class TVMountingOptionViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for listing and retrieving TV Mounting Options.
+    ViewSet for managing TV Mounting Options.
     """
     queryset = TVMountingOption.objects.all()
     serializer_class = TVMountingOptionSerializer
 
 
-class FurnitureAssemblyOptionViewSet(viewsets.ReadOnlyModelViewSet):
+class FurnitureAssemblyOptionViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for listing and retrieving Furniture Assembly Options.
+    ViewSet for managing Furniture Assembly Options.
     """
     queryset = FurnitureAssemblyOption.objects.all()
     serializer_class = FurnitureAssemblyOptionSerializer
 
 
-class InstallationServiceOptionViewSet(viewsets.ReadOnlyModelViewSet):
+class InstallationServiceOptionViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for listing and retrieving Installation Service Options.
+    ViewSet for managing Installation Service Options.
     """
     queryset = InstallationServiceOption.objects.all()
     serializer_class = InstallationServiceOptionSerializer
 
 
-class GazeboServiceOptionViewSet(viewsets.ReadOnlyModelViewSet):
+class GazeboServiceOptionViewSet(viewsets.ModelViewSet):
     """
-    ViewSet for listing and retrieving Gazebo Service Options.
+    ViewSet for managing Gazebo Service Options.
     """
     queryset = GazeboServiceOption.objects.all()
     serializer_class = GazeboServiceOptionSerializer

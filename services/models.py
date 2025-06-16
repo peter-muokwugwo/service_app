@@ -18,7 +18,7 @@ class ServiceCategory(models.Model):
         blank=True, null=True, verbose_name=_("Category Description")
     )
     feature_image = models.ImageField(
-        upload_to="service_categories/%Y/%m/%d/",
+        upload_to=upload_to_service,
         blank=True,
         null=True,
         verbose_name=_("Category Image"),
@@ -136,38 +136,46 @@ class TVMountingOption(BaseServiceOption):
         verbose_name_plural = _("TV Mounting Options")
 
 
+class Location(models.Model):
+    name = models.CharField(max_length=50, unique=True, verbose_name=_('Location'))
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _('Location')
+        verbose_name_plural = _('Locations')
+
+
+class ServiceType(models.Model):
+    name = models.CharField(max_length=50, unique=True, verbose_name=_('Service Type'))
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _('Service Type')
+        verbose_name_plural = _('Service Types')
+
+
+class AssemblyType(models.Model):
+    name = models.CharField(max_length=50, unique=True, verbose_name=_('Assembly Type'))
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _('Assembly Type')
+        verbose_name_plural = _('Assembly Types')
+
+
 class FurnitureAssemblyOption(BaseServiceOption):
     """
     Represents furniture assembly options for a service.
     """
-    location = models.CharField(
-        max_length=20,
-        choices=[
-            ('INDOOR', _('Indoor')),
-            ('OUTDOOR', _('Outdoor')),
-        ],
-        default='INDOOR',
-        verbose_name=_('Location')
-    )
-    service_type = models.CharField(
-        max_length=20,
-        choices=[
-            ('ASSEMBLY', _('Assembly')),
-            ('DISASSEMBLY', _('Disassembly')),
-            ('BOTH', _('Assembly and Disassembly')),
-        ],
-        default='ASSEMBLY',
-        verbose_name=_('Service Type')
-    )
-    assembly_type = models.CharField(
-        max_length=20,
-        choices=[
-            ('FLAT_PACK', _('Flat Pack')),
-            ('PRE_ASSEMBLED', _('Pre-Assembled')),
-        ],
-        default='FLAT_PACK',
-        verbose_name=_('Assembly Type')
-    )
+    location = models.ForeignKey(Location, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_('Location'))
+    service_type = models.ForeignKey(ServiceType, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_('Service Type'))
+    assembly_type = models.ForeignKey(AssemblyType, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_('Assembly Type'))
 
     def __str__(self):
         return f"{self.title}"
@@ -177,32 +185,35 @@ class FurnitureAssemblyOption(BaseServiceOption):
         verbose_name_plural = _("Furniture Assembly Options")
 
 
+class InstallationType(models.Model):
+    """
+    Represents a type of installation with name, photo, and description.
+    """
+    name = models.CharField(max_length=100, unique=True, verbose_name=_('Installation Type Name'))
+    photo = models.ImageField(upload_to=upload_to_service, blank=True, null=True, verbose_name=_('Installation Type Photo'))
+    description = models.TextField(blank=True, null=True, verbose_name=_('Installation Type Description'))
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _('Installation Type')
+        verbose_name_plural = _('Installation Types')
+
+
 class InstallationServiceOption(BaseServiceOption):
     """
     Represents installation service options.
     """
-    installation_type = models.CharField(
-        max_length=20,
-        choices=[
-            ('PLUMBING', _('Plumbing')),
-            ('FITNESS', _('Fitness Equipment')),
-            ('HOME_SECURITY', _('Home Security')),
-            ('WALL_HANGING', _('Wall Hanging')),
-            ('BABY_PROOF', _('Baby Proofing')),
-            ('APPLIANCE', _('Appliance')),
-            ('PLAYGROUND', _('Playground Equipment')),
-            ('LIGHT_FIXTURE', _('Light Fixture')),
-        ],
-        verbose_name=_('Installation Type')
-    )
+    installation_type = models.ForeignKey(
+        'InstallationType', on_delete=models.SET_NULL, blank=True, null=True, related_name='service_options', verbose_name=_('Installation Type'))
     location = models.CharField(
         max_length=20,
         choices=[
             ('INDOOR', _('Indoor')),
             ('OUTDOOR', _('Outdoor')),
-            ('BOTH', _('Indoor and Outdoor')),
+            ('BOTH', _('Both')),
         ],
-        default='INDOOR',
         verbose_name=_('Location')
     )
     power_nearby = models.CharField(
@@ -224,29 +235,28 @@ class InstallationServiceOption(BaseServiceOption):
         verbose_name_plural = _("Installation Service Options")
 
 
+class GazeboModel(models.Model):
+    """
+    Represents a specific gazebo model with name, photo, and description.
+    """
+    name = models.CharField(max_length=100, unique=True, verbose_name=_('Model Name'))
+    photo = models.ImageField(upload_to=upload_to_service, blank=True, null=True, verbose_name=_('Model Photo'))
+    description = models.TextField(blank=True, null=True, verbose_name=_('Model Description'))
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = _('Gazebo Model')
+        verbose_name_plural = _('Gazebo Models')
+
+
 class GazeboServiceOption(BaseServiceOption):
     ACTION_CHOICES = [
         ('INSTALLATION', 'Installation'),
         ('UNINSTALLATION', 'Uninstallation'),
         ('REPLACEMENT', 'Replacement'),
-    ]
-    GAZEBO_MODEL_CHOICES = [
-        ('CEDAR', 'Cedar'),
-        ('ALUMINIUM_DOUBLE_ROOF', 'Aluminium with Double Roof'),
-        ('PATIO_DOUBLE_ROOF', 'Patio with Double Roof'),
-        ('WOOD_PAVILION', 'Wood Pavilion'),
-        ('GRAND', 'Grand'),
-        ('MESSINA', 'Messina'),
-        ('CAROLINA_PAVILION', 'Carolina Pavilion'),
-        ('ALEXANDER_HARDTOP', 'Alexander Hardtop'),
-        ('SANTA_MONICA', 'Santa Monica'),
-        ('ARCHWOOD', 'Archwood'),
-        ('CARDOVA', 'Cardova'),
-        ('DOUBLE_ROOF_HARDTOP', 'Double Roof Hardtop'),
-        ('SIENA_SCREEN_ROOM', 'Siena Screen Room'),
-        ('APOLLO_ALUMINIUM', 'Apollo Aluminium'),
-        ('ARLINGTON', 'Arlington'),
-        ('CANOPY', 'Canopy'),
+        ('COMPLETION', 'Completion'),
     ]
     SIZE_CHOICES = [
         ('10X10', '10x10 ft'),
@@ -261,8 +271,8 @@ class GazeboServiceOption(BaseServiceOption):
     ]
     action = models.CharField(
         max_length=20, choices=ACTION_CHOICES, default='INSTALLATION')
-    gazebo_model = models.CharField(
-        max_length=50, choices=GAZEBO_MODEL_CHOICES, blank=True, null=True)
+    gazebo_model = models.ForeignKey(
+        'GazeboModel', on_delete=models.SET_NULL, blank=True, null=True, related_name='service_options', verbose_name=_('Gazebo Model'))
     size = models.CharField(
         max_length=20, choices=SIZE_CHOICES, blank=True, null=True)
     anchoring = models.CharField(

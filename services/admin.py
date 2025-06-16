@@ -44,3 +44,33 @@ class GazeboServiceOptionAdmin(admin.ModelAdmin):
                     'related_image', 'moving_help_charge']
     list_filter = ['gazebo_model', 'size']
     search_fields = ['title', 'gazebo_model']
+
+
+@admin.register(models.GazeboModel)
+class GazeboModelAdmin(admin.ModelAdmin):
+    list_display = ('name', 'photo', 'description')
+    search_fields = ('name', 'description')
+
+
+@admin.register(models.InstallationType)
+class InstallationTypeAdmin(admin.ModelAdmin):
+    list_display = ('name', 'photo', 'description')
+    search_fields = ('name', 'description')
+
+
+@admin.register(models.Location)
+class LocationAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+
+
+@admin.register(models.ServiceType)
+class ServiceTypeAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
+
+
+@admin.register(models.AssemblyType)
+class AssemblyTypeAdmin(admin.ModelAdmin):
+    list_display = ('name',)
+    search_fields = ('name',)
